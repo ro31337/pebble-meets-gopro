@@ -56,7 +56,7 @@ static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
       ticks_left_seconds);
     text_layer_set_text(s_ticks_layer, s_buffer);
 
-    if(ticks_left == 0) {
+    if(ticks_left <= 0) {
       toggle_worker();
     }
   }
