@@ -1,21 +1,46 @@
 #include <pebble.h>
 
-#define WORKER_TICKS 0
+#define HANDLER_WORKER_TICKS 0
+#define HANDLER_APP_BUTTONS 1
+#define MY_BUTTON_UP 0
+#define MY_BUTTON_DOWN 1
 
 static Window *s_main_window;
 static TextLayer *s_output_layer, *s_ticks_layer;
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
-  if(type == WORKER_TICKS) { 
+  if(type == HANDLER_WORKER_TICKS) {
     // Read ticks from worker's packet
     int ticks = data->data0;
+    int seconds = data->data1;
 
     // Show to user in TextLayer
     static char s_buffer[32];
-    snprintf(s_buffer, sizeof(s_buffer), "%d background ticks", ticks);
+    snprintf(s_buffer, sizeof(s_buffer), "00:%02d recorded,\n00:%02d left", ticks, seconds);
     text_layer_set_text(s_ticks_layer, s_buffer);
   }
 }
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Construct a data packet
+  AppWorkerMessage msg_data = {
+    .data0 = MY_BUTTON_UP
+  };
+
+  // Send the data to the foreground app
+  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Construct a data packet
+  AppWorkerMessage msg_data = {
+    .data0 = MY_BUTTON_DOWN
+  };
+
+  // Send the data to the foreground app
+  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
+}
+
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   // Check to see if the worker is currently active
@@ -27,7 +52,7 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     result = app_worker_kill();
 
     if(result == APP_WORKER_RESULT_SUCCESS) {
-      text_layer_set_text(s_ticks_layer, "Worker stopped!");
+      text_layer_set_text(s_ticks_layer, "Click to start...");
     } else {
       text_layer_set_text(s_ticks_layer, "Error killing worker!");
     }
@@ -35,7 +60,7 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     result = app_worker_launch();
 
     if(result == APP_WORKER_RESULT_SUCCESS) {
-      text_layer_set_text(s_ticks_layer, "Worker launched!");
+      text_layer_set_text(s_ticks_layer, "Recording...");
     } else {
       text_layer_set_text(s_ticks_layer, "Error launching worker!");
     }
@@ -46,6 +71,8 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
 
 static void main_window_load(Window *window) {
@@ -55,16 +82,16 @@ static void main_window_load(Window *window) {
 
   // Create UI
   s_output_layer = text_layer_create(bounds);
-  text_layer_set_text(s_output_layer, "Use SELECT to start/stop the background worker.");
+  text_layer_set_text(s_output_layer, "UP: -5 seconds\nSELECT: start/stop\nDOWN: +5 seconds");
   text_layer_set_text_alignment(s_output_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_output_layer));
 #ifdef PBL_ROUND
   text_layer_enable_screen_text_flow_and_paging(s_output_layer, inset);
 #endif
 
-  s_ticks_layer = text_layer_create(GRect(PBL_IF_RECT_ELSE(5, 0), 135, bounds.size.w, 30));
+  s_ticks_layer = text_layer_create(GRect(PBL_IF_RECT_ELSE(15, 10), 80, bounds.size.w, 30));
   text_layer_set_text(s_ticks_layer, "No data yet.");
-  text_layer_set_text_alignment(s_ticks_layer, PBL_IF_RECT_ELSE(GTextAlignmentLeft, 
+  text_layer_set_text_alignment(s_ticks_layer, PBL_IF_RECT_ELSE(GTextAlignmentLeft,
                                                                 GTextAlignmentCenter));
   layer_add_child(window_layer, text_layer_get_layer(s_ticks_layer));
 #ifdef PBL_ROUND
