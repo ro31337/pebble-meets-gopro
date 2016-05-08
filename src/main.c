@@ -8,51 +8,7 @@
 static Window *s_main_window;
 static TextLayer *s_output_layer, *s_ticks_layer;
 
-static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
-  if(type == HANDLER_WORKER_TICKS) {
-    // Read ticks from worker's packet
-    int ticks_recorded = data->data0;
-    int ticks_left = data->data1;
-
-    int ticks_recorded_minutes = ticks_recorded / 60;
-    int ticks_recorded_seconds = ticks_recorded % 60;
-
-    int ticks_left_minutes = ticks_left / 60;
-    int ticks_left_seconds = ticks_left % 60;
-
-    // Show to user in TextLayer
-    static char s_buffer[32];
-    snprintf(s_buffer, sizeof(s_buffer), "%02d:%02d recorded,\n%02d:%02d left",
-      ticks_recorded_minutes,
-      ticks_recorded_seconds,
-      ticks_left_minutes,
-      ticks_left_seconds);
-    text_layer_set_text(s_ticks_layer, s_buffer);
-  }
-}
-
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Construct a data packet
-  AppWorkerMessage msg_data = {
-    .data0 = MY_BUTTON_UP
-  };
-
-  // Send the data to the foreground app
-  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
-}
-
-static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Construct a data packet
-  AppWorkerMessage msg_data = {
-    .data0 = MY_BUTTON_DOWN
-  };
-
-  // Send the data to the foreground app
-  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
-}
-
-
-static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+static void toggle_worker(void) {
   // Check to see if the worker is currently active
   bool running = app_worker_is_running();
 
@@ -77,6 +33,57 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   }
 
   APP_LOG(APP_LOG_LEVEL_INFO, "Result: %d", result);
+}
+
+static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
+  if(type == HANDLER_WORKER_TICKS) {
+    // Read ticks from worker's packet
+    int ticks_recorded = data->data0;
+    int ticks_left = data->data1;
+
+    int ticks_recorded_minutes = ticks_recorded / 60;
+    int ticks_recorded_seconds = ticks_recorded % 60;
+
+    int ticks_left_minutes = ticks_left / 60;
+    int ticks_left_seconds = ticks_left % 60;
+
+    // Show to user in TextLayer
+    static char s_buffer[32];
+    snprintf(s_buffer, sizeof(s_buffer), "%02d:%02d recorded,\n%02d:%02d left",
+      ticks_recorded_minutes,
+      ticks_recorded_seconds,
+      ticks_left_minutes,
+      ticks_left_seconds);
+    text_layer_set_text(s_ticks_layer, s_buffer);
+
+    if(ticks_left == 0) {
+      toggle_worker();
+    }
+  }
+}
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Construct a data packet
+  AppWorkerMessage msg_data = {
+    .data0 = MY_BUTTON_UP
+  };
+
+  // Send the data to the foreground app
+  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Construct a data packet
+  AppWorkerMessage msg_data = {
+    .data0 = MY_BUTTON_DOWN
+  };
+
+  // Send the data to the foreground app
+  app_worker_send_message(HANDLER_APP_BUTTONS, &msg_data);
+}
+
+static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  toggle_worker();
 }
 
 static void click_config_provider(void *context) {
