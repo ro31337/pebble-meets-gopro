@@ -6,6 +6,10 @@ Based on `feature-background-counter` from official Pebble docs.
 
 This project is under development and not ready to use.
 
+# Run
+
+`pebble build && pebble install --emulator aplite`
+
 # feature-background-counter
 
 ![screenshot](feature-background-counter-screenshot.png)
