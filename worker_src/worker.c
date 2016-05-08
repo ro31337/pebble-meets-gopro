@@ -14,6 +14,7 @@ static void app_message_handler(uint16_t type, AppWorkerMessage *data) {
   if(type == HANDLER_APP_BUTTONS) {
     if(data->data0 == MY_BUTTON_UP) {
       ticks_recorded += 5;
+      ticks_left -= 5;
     }
     if(data->data0 == MY_BUTTON_DOWN) {
       ticks_left += 5;
