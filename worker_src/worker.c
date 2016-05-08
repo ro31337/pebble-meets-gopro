@@ -10,6 +10,17 @@
 static uint16_t ticks_recorded = 0;
 static uint16_t ticks_left = REC_LENGTH;
 
+static void send_ticks_message(void) {
+  // Construct a data packet
+  AppWorkerMessage msg_data = {
+    .data0 = ticks_recorded,
+    .data1 = ticks_left
+  };
+
+  // Send the data to the foreground app
+  app_worker_send_message(HANDLER_WORKER_TICKS, &msg_data);
+}
+
 static void app_message_handler(uint16_t type, AppWorkerMessage *data) {
   if(type == HANDLER_APP_BUTTONS) {
     if(data->data0 == MY_BUTTON_UP) {
@@ -19,6 +30,8 @@ static void app_message_handler(uint16_t type, AppWorkerMessage *data) {
     if(data->data0 == MY_BUTTON_DOWN) {
       ticks_left += 5;
     }
+
+    send_ticks_message();
   }
 }
 
@@ -27,14 +40,7 @@ static void tick_handler(struct tm *tick_timer, TimeUnits units_changed) {
   ticks_recorded++;
   ticks_left--;
 
-  // Construct a data packet
-  AppWorkerMessage msg_data = {
-    .data0 = ticks_recorded,
-    .data1 = ticks_left
-  };
-
-  // Send the data to the foreground app
-  app_worker_send_message(HANDLER_WORKER_TICKS, &msg_data);
+  send_ticks_message();
 }
 
 static void worker_init() {
