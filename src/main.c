@@ -63,6 +63,12 @@ static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  bool running = app_worker_is_running();
+
+  if(!running) {
+    toggle_worker();
+  }
+
   // Construct a data packet
   AppWorkerMessage msg_data = {
     .data0 = MY_BUTTON_UP
